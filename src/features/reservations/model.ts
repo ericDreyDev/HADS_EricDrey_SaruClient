@@ -1,7 +1,7 @@
 import type { AuthUser } from '../auth/api/authApi'
 
 export type MealType = 'lunch' | 'dinner'
-export type ReservationStatus = 'Em aberto' | 'Consumida' | 'Falta' | 'Cancelada'
+export type ReservationStatus = 'Em aberto' | 'Aguardando pagamento' | 'Consumida' | 'Falta' | 'Cancelada'
 
 export type Reservation = {
   id: string
@@ -12,9 +12,10 @@ export type Reservation = {
   status: ReservationStatus
   price: number
   deadline: string
+  paymentId?: string | null
 }
 
-export type ReservationDraft = Omit<Reservation, 'id' | 'status' | 'price' | 'deadline'>
+export type ReservationDraft = Omit<Reservation, 'id' | 'status' | 'price' | 'deadline' | 'paymentId'>
 
 export type DaySelection = {
   lunch: boolean

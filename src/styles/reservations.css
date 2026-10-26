@@ -66,3 +66,19 @@
   .reservation-shortcuts { padding: 14px 18px 0; }
   .reservation-shortcuts > div { flex-wrap: wrap; overflow: visible; }
 }
+
+/* PIX checkout */
+.pix-modal { max-width: 480px; }
+.pix-content { padding: 20px; display: grid; gap: 16px; color: var(--ink); }
+.pix-content p { margin: 0; line-height: 1.6; font-size: 13px; }
+.pix-total { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; background: var(--surface-soft); border-radius: 12px; }
+.pix-total strong { font-size: 26px; }
+.pix-total span { color: var(--muted-strong); font-size: 13px; }
+.pix-qr { width: min(240px, 100%); height: auto; padding: 12px; justify-self: center; border-radius: 12px; background: white; }
+.pix-deadline { text-align: center; }
+.pix-code { display: grid; gap: 8px; font-size: 12px; font-weight: 700; }
+.pix-code textarea { width: 100%; min-height: 90px; resize: vertical; padding: 10px; border: 1px solid var(--control-border); border-radius: 10px; color: var(--ink); background: var(--surface); overflow-wrap: anywhere; font-size: 12px; }
+.pix-content .pix-hint { color: var(--muted-strong); font-size: 12px; }
+.pix-refund { display: grid; gap: 8px; padding: 12px; background: var(--surface-soft); border-radius: 10px; font-size: 12px; }
+.pix-refund a { color: var(--green-dark); }
+.reservation-actions { flex-wrap: wrap; justify-content: flex-end; }

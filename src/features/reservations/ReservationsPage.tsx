@@ -7,7 +7,7 @@ import { EditReservationFlow } from './EditReservationFlow'
 import { ReservationCard } from './ReservationCard'
 import type { Reservation, ReservationDraft, ReservationStatus } from './model'
 
-export function ReservationsPage({ dark, onToggle, onNavigate, onLogout, user, reservations, loading, onCancel, onUpdate }: {
+export function ReservationsPage({ dark, onToggle, onNavigate, onLogout, user, reservations, loading, onCancel, onUpdate, onPayment }: {
   dark: boolean
   onToggle: () => void
   onNavigate: (page: AppPage) => void
@@ -17,17 +17,21 @@ export function ReservationsPage({ dark, onToggle, onNavigate, onLogout, user, r
   loading: boolean
   onCancel: (id: string) => Promise<void>
   onUpdate: (id: string, draft: ReservationDraft) => Promise<void>
+  onPayment: (id: string) => Promise<void>
 }) {
   const [filter, setFilter] = useState<'Todas' | ReservationStatus>('Todas')
   const [editing, setEditing] = useState<Reservation | null>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
-  const filters: ('Todas' | ReservationStatus)[] = ['Todas', 'Em aberto', 'Consumida', 'Falta', 'Cancelada']
+  const filters: ('Todas' | ReservationStatus)[] = ['Todas', 'Aguardando pagamento', 'Em aberto', 'Consumida', 'Falta', 'Cancelada']
   const filtered = reservations
     .filter((reservation) => filter === 'Todas' || reservation.status === filter)
     .sort((a, b) => b.date.localeCompare(a.date))
 
   const cancel = async (reservation: Reservation) => {
-    if (!window.confirm(`Cancelar a reserva de ${reservation.meal === 'lunch' ? 'almoço' : 'jantar'}?`)) return
+    const warning = reservation.status === 'Aguardando pagamento'
+      ? 'Todas as refeições vinculadas a este PIX pendente serão canceladas.'
+      : reservation.paymentId ? 'O valor desta refeição será devolvido após o processamento do estorno.' : ''
+    if (!window.confirm(`Cancelar a reserva de ${reservation.meal === 'lunch' ? 'almoço' : 'jantar'}? ${warning}`)) return
     setCancellingId(reservation.id)
     try {
       await onCancel(reservation.id)
@@ -43,7 +47,7 @@ export function ReservationsPage({ dark, onToggle, onNavigate, onLogout, user, r
       {loading
         ? <div className="reservations-loading"><span className="loading-spinner" /><p>Carregando reservas…</p></div>
         : filtered.length
-          ? <div className="reservation-list">{filtered.map((reservation) => <ReservationCard key={reservation.id} reservation={reservation} onEdit={reservation.status === 'Em aberto' ? () => setEditing(reservation) : undefined} onCancel={reservation.status === 'Em aberto' ? () => cancel(reservation) : undefined} busy={cancellingId === reservation.id} />)}</div>
+          ? <div className="reservation-list">{filtered.map((reservation) => <ReservationCard key={reservation.id} reservation={reservation} onEdit={reservation.status === 'Em aberto' && !reservation.paymentId ? () => setEditing(reservation) : undefined} onCancel={['Em aberto', 'Aguardando pagamento'].includes(reservation.status) ? () => cancel(reservation) : undefined} onPayment={reservation.paymentId ? () => onPayment(reservation.paymentId!) : undefined} busy={cancellingId === reservation.id} />)}</div>
           : <div className="empty-state"><span><Icon name="calendar" /></span><h3>Nenhuma reserva encontrada</h3><p>Não há registros com o status selecionado.</p></div>}
     </section>
     {editing && <EditReservationFlow reservation={editing} user={user} onClose={() => setEditing(null)} onSave={(draft) => onUpdate(editing.id, draft)} />}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Page } from './types'
 import {
   ApiError,
@@ -22,12 +22,14 @@ import { DashboardPage } from '../features/home/DashboardPage'
 import { ReservationsPage } from '../features/reservations/ReservationsPage'
 import {
   cancelReservation as cancelReservationRequest,
-  createReservation,
   getReservations,
   updateReservation,
 } from '../features/reservations/api/reservationsApi'
 import type { Reservation, ReservationDraft } from '../features/reservations/model'
 import { SettingsPage } from '../features/settings/SettingsPage'
+import { createPixPayment, getPixPayment } from '../features/reservations/api/paymentsApi'
+import type { PixPayment } from '../features/reservations/api/paymentsApi'
+import { PixPaymentDialog } from '../features/reservations/PixPaymentDialog'
 
 function App() {
   const resetParameters = useMemo(() => new URLSearchParams(window.location.search), [])
@@ -39,6 +41,8 @@ function App() {
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [reservationsLoading, setReservationsLoading] = useState(false)
   const [toast, setToast] = useState('')
+  const [payment, setPayment] = useState<PixPayment | null>(null)
+  const checkout = useRef<{ signature: string; id: string } | null>(null)
   const [recoveryEmail, setRecoveryEmail] = useState('')
   const resetEmail = resetParameters.get('email') ?? ''
   const resetToken = resetParameters.get('token') ?? ''
@@ -69,6 +73,8 @@ function App() {
     const timer = window.setTimeout(() => {
       refreshSession().then(setSession).catch(() => {
         setSession(null)
+        setPayment(null)
+        checkout.current = null
         setReservations([])
         setReservationsLoading(false)
         setPage('login')
@@ -99,21 +105,34 @@ function App() {
   const goToLogin = () => { window.history.replaceState({}, '', '/'); setPage('login') }
 
   const createReservations = async (drafts: ReservationDraft[]) => {
+    const signature = JSON.stringify([session?.user.id, drafts])
+    if (checkout.current?.signature !== signature) checkout.current = { signature, id: crypto.randomUUID() }
     try {
-      const createdReservations = await Promise.all(drafts.map(createReservation))
-      setReservations((current) => [...createdReservations, ...current])
-      setToast(`${createdReservations.length} ${createdReservations.length === 1 ? 'reserva confirmada' : 'reservas confirmadas'} com sucesso.`)
+      const createdPayment = await createPixPayment(checkout.current.id, drafts)
+      setPayment(createdPayment)
+      checkout.current = null
+      getReservations(true).then(setReservations).catch(() => undefined)
     } catch (requestError) {
       getReservations(true).then(setReservations).catch(() => undefined)
       throw requestError
     }
   }
 
+  const reloadReservations = useCallback(async () => {
+    const loaded = await getReservations(true)
+    setReservations(loaded)
+  }, [])
+
+  const openPayment = async (id: string) => {
+    try { setPayment(await getPixPayment(id)) }
+    catch (requestError) { setToast(requestError instanceof ApiError ? requestError.message : 'Não foi possível carregar o pagamento.') }
+  }
+
   const cancelReservation = async (id: string) => {
     try {
       await cancelReservationRequest(id)
-      setReservations((current) => current.map((reservation) => reservation.id === id ? { ...reservation, status: 'Cancelada' } : reservation))
-      setToast('Reserva cancelada.')
+      await reloadReservations()
+      setToast('Cancelamento registrado. Se houver pagamento, acompanhe o estorno nas reservas.')
     } catch (requestError) {
       setToast(requestError instanceof ApiError ? requestError.message : 'Não foi possível cancelar a reserva.')
     }
@@ -127,6 +146,8 @@ function App() {
 
   const authenticate = async (email: string, password: string) => {
     const authenticatedSession = await login(email, password)
+    setPayment(null)
+    checkout.current = null
     setReservationsLoading(true)
     setSession(authenticatedSession)
     setPage('home')
@@ -156,6 +177,8 @@ function App() {
       await logout()
     } finally {
       setSession(null)
+      setPayment(null)
+      checkout.current = null
       setReservations([])
       goToLogin()
       setToast('Você saiu da sua conta.')
@@ -173,10 +196,11 @@ function App() {
     {visiblePage === 'forgot-password' && <ForgotPasswordPage dark={dark} onToggle={toggleTheme} onBack={goToLogin} onSubmit={submitRecovery} />}
     {visiblePage === 'recovery-sent' && <RecoverySentPage dark={dark} onToggle={toggleTheme} email={recoveryEmail} onBack={goToLogin} />}
     {visiblePage === 'reset-password' && <ResetPasswordPage dark={dark} onToggle={toggleTheme} email={resetEmail} token={resetToken} onBack={goToLogin} onComplete={completeReset} />}
-    {visiblePage === 'home' && session && <DashboardPage dark={dark} onToggle={toggleTheme} onNavigate={setPage} onLogout={endSession} user={session.user} reservations={reservations} reservationsLoading={reservationsLoading} onCreateReservations={createReservations} />}
-    {visiblePage === 'reservations' && session && <ReservationsPage dark={dark} onToggle={toggleTheme} onNavigate={setPage} onLogout={endSession} user={session.user} reservations={reservations} loading={reservationsLoading} onCancel={cancelReservation} onUpdate={editReservation} />}
+    {visiblePage === 'home' && session && <DashboardPage dark={dark} onToggle={toggleTheme} onNavigate={setPage} onLogout={endSession} user={session.user} reservations={reservations} reservationsLoading={reservationsLoading} onCreateReservations={createReservations} onPayment={openPayment} />}
+    {visiblePage === 'reservations' && session && <ReservationsPage dark={dark} onToggle={toggleTheme} onNavigate={setPage} onLogout={endSession} user={session.user} reservations={reservations} loading={reservationsLoading} onCancel={cancelReservation} onUpdate={editReservation} onPayment={openPayment} />}
     {visiblePage === 'settings' && session && <SettingsPage dark={dark} onToggle={toggleTheme} onNavigate={setPage} onLogout={endSession} user={session.user} />}
     {toast && <div className="toast" role="status">{toast}</div>}
+    {session && payment && <PixPaymentDialog key={payment.id} initialPayment={payment} onClose={() => { setPayment(null); void reloadReservations().catch(() => undefined) }} onChanged={reloadReservations} />}
   </>
 }
 

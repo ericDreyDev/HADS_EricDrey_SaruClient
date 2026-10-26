@@ -2,7 +2,7 @@ import { authenticatedRequest } from '../../auth/api/authApi'
 import type { MealType, Reservation, ReservationDraft, ReservationStatus } from '../model'
 
 type ApiMealType = 'Lunch' | 'Dinner'
-type ApiReservationStatus = 'Confirmed' | 'Consumed' | 'NotConsumed' | 'Cancelled'
+type ApiReservationStatus = 'Confirmed' | 'AwaitingPayment' | 'Consumed' | 'NotConsumed' | 'Cancelled'
 
 type ReservationResponse = {
   id: string
@@ -13,10 +13,12 @@ type ReservationResponse = {
   includesTakeoutContainer: boolean
   totalPrice: number
   status: ApiReservationStatus
+  paymentId: string | null
 }
 
 const statusLabels: Record<ApiReservationStatus, ReservationStatus> = {
   Confirmed: 'Em aberto',
+  AwaitingPayment: 'Aguardando pagamento',
   Consumed: 'Consumida',
   NotConsumed: 'Falta',
   Cancelled: 'Cancelada',
@@ -32,6 +34,7 @@ function toReservation(response: ReservationResponse): Reservation {
     status: statusLabels[response.status],
     price: response.totalPrice,
     deadline: response.reservationDeadline,
+    paymentId: response.paymentId,
   }
 }
 
