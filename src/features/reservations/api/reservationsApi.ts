@@ -14,6 +14,8 @@ type ReservationResponse = {
   totalPrice: number
   status: ApiReservationStatus
   paymentId: string | null
+  canEdit?: boolean
+  canCancel?: boolean
 }
 
 const statusLabels: Record<ApiReservationStatus, ReservationStatus> = {
@@ -25,6 +27,7 @@ const statusLabels: Record<ApiReservationStatus, ReservationStatus> = {
 }
 
 function toReservation(response: ReservationResponse): Reservation {
+  const canChangeConfirmed = response.status === 'Confirmed' && Date.now() <= Date.parse(response.reservationDeadline)
   return {
     id: response.id,
     date: response.date,
@@ -35,6 +38,8 @@ function toReservation(response: ReservationResponse): Reservation {
     price: response.totalPrice,
     deadline: response.reservationDeadline,
     paymentId: response.paymentId,
+    canEdit: response.canEdit ?? (canChangeConfirmed && !response.paymentId),
+    canCancel: response.canCancel ?? (canChangeConfirmed || response.status === 'AwaitingPayment'),
   }
 }
 

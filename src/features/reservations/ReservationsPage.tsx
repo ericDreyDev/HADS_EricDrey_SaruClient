@@ -47,7 +47,16 @@ export function ReservationsPage({ dark, onToggle, onNavigate, onLogout, user, r
       {loading
         ? <div className="reservations-loading"><span className="loading-spinner" /><p>Carregando reservas…</p></div>
         : filtered.length
-          ? <div className="reservation-list">{filtered.map((reservation) => <ReservationCard key={reservation.id} reservation={reservation} onEdit={reservation.status === 'Em aberto' && !reservation.paymentId ? () => setEditing(reservation) : undefined} onCancel={['Em aberto', 'Aguardando pagamento'].includes(reservation.status) ? () => cancel(reservation) : undefined} onPayment={reservation.paymentId ? () => onPayment(reservation.paymentId!) : undefined} busy={cancellingId === reservation.id} />)}</div>
+          ? <div className="reservation-list">{filtered.map((reservation) => (
+            <ReservationCard
+              key={reservation.id}
+              reservation={reservation}
+              onEdit={reservation.canEdit ? () => setEditing(reservation) : undefined}
+              onCancel={reservation.canCancel ? () => cancel(reservation) : undefined}
+              onPayment={reservation.paymentId ? () => onPayment(reservation.paymentId!) : undefined}
+              busy={cancellingId === reservation.id}
+            />
+          ))}</div>
           : <div className="empty-state"><span><Icon name="calendar" /></span><h3>Nenhuma reserva encontrada</h3><p>Não há registros com o status selecionado.</p></div>}
     </section>
     {editing && <EditReservationFlow reservation={editing} user={user} onClose={() => setEditing(null)} onSave={(draft) => onUpdate(editing.id, draft)} />}

@@ -13,9 +13,11 @@ export type Reservation = {
   price: number
   deadline: string
   paymentId?: string | null
+  canEdit: boolean
+  canCancel: boolean
 }
 
-export type ReservationDraft = Omit<Reservation, 'id' | 'status' | 'price' | 'deadline' | 'paymentId'>
+export type ReservationDraft = Omit<Reservation, 'id' | 'status' | 'price' | 'deadline' | 'paymentId' | 'canEdit' | 'canCancel'>
 
 export type DaySelection = {
   lunch: boolean
