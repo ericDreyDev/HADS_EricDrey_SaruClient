@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { AppPage } from '../../app/types'
 import type { AuthUser } from '../auth/api/authApi'
 import { AppLayout } from '../../shared/layout/AppLayout'
@@ -7,7 +7,7 @@ import { EditReservationFlow } from './EditReservationFlow'
 import { ReservationCard } from './ReservationCard'
 import type { Reservation, ReservationDraft, ReservationStatus } from './model'
 
-export function ReservationsPage({ dark, onToggle, onNavigate, onLogout, user, reservations, loading, onCancel, onUpdate, onPayment }: {
+export function ReservationsPage({ dark, onToggle, onNavigate, onLogout, user, reservations, loading, onCancel, onUpdate, onPayment, highlightedIds = [] }: {
   dark: boolean
   onToggle: () => void
   onNavigate: (page: AppPage) => void
@@ -18,19 +18,25 @@ export function ReservationsPage({ dark, onToggle, onNavigate, onLogout, user, r
   onCancel: (id: string) => Promise<void>
   onUpdate: (id: string, draft: ReservationDraft) => Promise<void>
   onPayment: (id: string) => Promise<void>
+  highlightedIds?: string[]
 }) {
   const [filter, setFilter] = useState<'Todas' | ReservationStatus>('Todas')
   const [editing, setEditing] = useState<Reservation | null>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
-  const filters: ('Todas' | ReservationStatus)[] = ['Todas', 'Aguardando pagamento', 'Em aberto', 'Consumida', 'Falta', 'Cancelada']
+  const filters: ('Todas' | ReservationStatus)[] = ['Todas', 'Aguardando PIX', 'Confirmada', 'Consumida', 'Falta', 'Cancelada']
   const filtered = reservations
     .filter((reservation) => filter === 'Todas' || reservation.status === filter)
-    .sort((a, b) => b.date.localeCompare(a.date))
+    .sort((a, b) => Number(highlightedIds.includes(b.id)) - Number(highlightedIds.includes(a.id))
+      || b.date.localeCompare(a.date))
+
+  useEffect(() => {
+    if (!loading && highlightedIds.length) document.getElementById(`reservation-${highlightedIds[0]}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [loading, highlightedIds])
 
   const cancel = async (reservation: Reservation) => {
-    const warning = reservation.status === 'Aguardando pagamento'
+    const warning = reservation.status === 'Aguardando PIX'
       ? 'Todas as refeições vinculadas a este PIX pendente serão canceladas.'
-      : reservation.paymentId ? 'O valor desta refeição será devolvido após o processamento do estorno.' : ''
+      : reservation.paymentStatus === 'Paid' ? 'O valor desta refeição será devolvido após o processamento do reembolso.' : 'Não haverá cobrança por esta refeição.'
     if (!window.confirm(`Cancelar a reserva de ${reservation.meal === 'lunch' ? 'almoço' : 'jantar'}? ${warning}`)) return
     setCancellingId(reservation.id)
     try {
@@ -51,6 +57,7 @@ export function ReservationsPage({ dark, onToggle, onNavigate, onLogout, user, r
             <ReservationCard
               key={reservation.id}
               reservation={reservation}
+              highlighted={highlightedIds.includes(reservation.id)}
               onEdit={reservation.canEdit ? () => setEditing(reservation) : undefined}
               onCancel={reservation.canCancel ? () => cancel(reservation) : undefined}
               onPayment={reservation.paymentId ? () => onPayment(reservation.paymentId!) : undefined}

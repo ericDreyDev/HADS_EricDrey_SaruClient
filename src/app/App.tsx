@@ -25,9 +25,9 @@ import {
   getReservations,
   updateReservation,
 } from '../features/reservations/api/reservationsApi'
-import type { Reservation, ReservationDraft } from '../features/reservations/model'
+import type { PaymentMethod, Reservation, ReservationDraft } from '../features/reservations/model'
 import { SettingsPage } from '../features/settings/SettingsPage'
-import { createPixPayment, getPixPayment } from '../features/reservations/api/paymentsApi'
+import { createReservationPayment, getPixPayment } from '../features/reservations/api/paymentsApi'
 import type { PixPayment } from '../features/reservations/api/paymentsApi'
 import { PixPaymentDialog } from '../features/reservations/PixPaymentDialog'
 
@@ -42,6 +42,8 @@ function App() {
   const [reservationsLoading, setReservationsLoading] = useState(false)
   const [toast, setToast] = useState('')
   const [payment, setPayment] = useState<PixPayment | null>(null)
+  const [completePaymentOnSuccess, setCompletePaymentOnSuccess] = useState(false)
+  const [highlightedReservations, setHighlightedReservations] = useState<string[]>([])
   const checkout = useRef<{ signature: string; id: string } | null>(null)
   const [recoveryEmail, setRecoveryEmail] = useState('')
   const resetEmail = resetParameters.get('email') ?? ''
@@ -104,14 +106,22 @@ function App() {
   const toggleTheme = () => setDark((current) => !current)
   const goToLogin = () => { window.history.replaceState({}, '', '/'); setPage('login') }
 
-  const createReservations = async (drafts: ReservationDraft[]) => {
-    const signature = JSON.stringify([session?.user.id, drafts])
+  const createReservations = async (drafts: ReservationDraft[], method: PaymentMethod) => {
+    const signature = JSON.stringify([session?.user.id, drafts, method])
     if (checkout.current?.signature !== signature) checkout.current = { signature, id: crypto.randomUUID() }
     try {
-      const createdPayment = await createPixPayment(checkout.current.id, drafts)
-      setPayment(createdPayment)
+      const createdPayment = await createReservationPayment(checkout.current.id, drafts, method)
       checkout.current = null
-      getReservations(true).then(setReservations).catch(() => undefined)
+      if (method === 'PayAtRestaurant') {
+        if (!createdPayment.reservations.length || createdPayment.reservations.some((item) => item.status !== 'Confirmed')) {
+          throw new ApiError(409, { detail: 'Esta tentativa já foi encerrada. Atualize suas reservas e faça uma nova seleção.' })
+        }
+        await completeCheckout(createdPayment)
+      } else {
+        setCompletePaymentOnSuccess(true)
+        setPayment(createdPayment)
+        getReservations(true).then(setReservations).catch(() => undefined)
+      }
     } catch (requestError) {
       getReservations(true).then(setReservations).catch(() => undefined)
       throw requestError
@@ -123,16 +133,49 @@ function App() {
     setReservations(loaded)
   }, [])
 
+  const completeCheckout = useCallback(async (completed: PixPayment) => {
+    setPayment(null)
+    setHighlightedReservations(completed.reservations.map((item) => item.id))
+    setPage('reservations')
+    setReservationsLoading(true)
+    setToast(completed.method === 'PayAtRestaurant'
+      ? 'Reserva confirmada! O pagamento está pendente e será feito no RU.'
+      : 'Reserva confirmada! PIX recebido e pagamento pago.')
+    try { await reloadReservations() }
+    catch { setToast('Sua reserva foi confirmada. Não foi possível atualizar a lista; recarregue a página para consultá-la.') }
+    finally { setReservationsLoading(false) }
+  }, [reloadReservations])
+
+  const needsReservationUpdates = reservations.some((item) => item.status === 'Aguardando PIX'
+    || ['RefundPending', 'ReviewRequired'].includes(item.paymentStatus))
+  useEffect(() => {
+    if (!reservationUserId || !needsReservationUpdates) return
+    let active = true
+    let timer: number | undefined
+    const refresh = async () => {
+      try {
+        const loaded = await getReservations(true)
+        if (active) setReservations(loaded)
+      } catch { /* The next refresh retries; the payment dialog shows connection errors. */ }
+      if (active) timer = window.setTimeout(refresh, 5000)
+    }
+    timer = window.setTimeout(refresh, 5000)
+    return () => { active = false; window.clearTimeout(timer) }
+  }, [reservationUserId, needsReservationUpdates])
+
   const openPayment = async (id: string) => {
-    try { setPayment(await getPixPayment(id)) }
+    try { setCompletePaymentOnSuccess(false); setPayment(await getPixPayment(id)) }
     catch (requestError) { setToast(requestError instanceof ApiError ? requestError.message : 'Não foi possível carregar o pagamento.') }
   }
 
   const cancelReservation = async (id: string) => {
     try {
+      const cancelled = reservations.find((item) => item.id === id)
       await cancelReservationRequest(id)
       await reloadReservations()
-      setToast('Cancelamento registrado. Se houver pagamento, acompanhe o estorno nas reservas.')
+      setToast(cancelled?.paymentStatus === 'Paid'
+        ? 'Reserva cancelada. O reembolso está em andamento; acompanhe em Minhas reservas.'
+        : 'Reserva cancelada. Nenhum pagamento é necessário.')
     } catch (requestError) {
       setToast(requestError instanceof ApiError ? requestError.message : 'Não foi possível cancelar a reserva.')
     }
@@ -197,10 +240,10 @@ function App() {
     {visiblePage === 'recovery-sent' && <RecoverySentPage dark={dark} onToggle={toggleTheme} email={recoveryEmail} onBack={goToLogin} />}
     {visiblePage === 'reset-password' && <ResetPasswordPage dark={dark} onToggle={toggleTheme} email={resetEmail} token={resetToken} onBack={goToLogin} onComplete={completeReset} />}
     {visiblePage === 'home' && session && <DashboardPage dark={dark} onToggle={toggleTheme} onNavigate={setPage} onLogout={endSession} user={session.user} reservations={reservations} reservationsLoading={reservationsLoading} onCreateReservations={createReservations} onPayment={openPayment} />}
-    {visiblePage === 'reservations' && session && <ReservationsPage dark={dark} onToggle={toggleTheme} onNavigate={setPage} onLogout={endSession} user={session.user} reservations={reservations} loading={reservationsLoading} onCancel={cancelReservation} onUpdate={editReservation} onPayment={openPayment} />}
+    {visiblePage === 'reservations' && session && <ReservationsPage dark={dark} onToggle={toggleTheme} onNavigate={setPage} onLogout={endSession} user={session.user} reservations={reservations} loading={reservationsLoading} onCancel={cancelReservation} onUpdate={editReservation} onPayment={openPayment} highlightedIds={highlightedReservations} />}
     {visiblePage === 'settings' && session && <SettingsPage dark={dark} onToggle={toggleTheme} onNavigate={setPage} onLogout={endSession} user={session.user} />}
     {toast && <div className="toast" role="status">{toast}</div>}
-    {session && payment && <PixPaymentDialog key={payment.id} initialPayment={payment} onClose={() => { setPayment(null); void reloadReservations().catch(() => undefined) }} onChanged={reloadReservations} />}
+    {session && payment && <PixPaymentDialog key={payment.id} initialPayment={payment} onClose={() => { setPayment(null); setPage('reservations'); void reloadReservations().catch(() => undefined) }} onChanged={reloadReservations} onSuccess={completePaymentOnSuccess ? completeCheckout : undefined} />}
   </>
 }
 

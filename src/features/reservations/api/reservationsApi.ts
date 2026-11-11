@@ -1,8 +1,8 @@
 import { authenticatedRequest } from '../../auth/api/authApi'
-import type { MealType, Reservation, ReservationDraft, ReservationStatus } from '../model'
+import type { MealType, PaymentMethod, Reservation, ReservationDraft, ReservationStatus, ReservationPaymentStatus, ReservationPricing } from '../model'
 
 type ApiMealType = 'Lunch' | 'Dinner'
-type ApiReservationStatus = 'Confirmed' | 'AwaitingPayment' | 'Consumed' | 'NotConsumed' | 'Cancelled'
+type ApiReservationStatus = 'Confirmed' | 'AwaitingPayment' | 'Consumed' | 'NotConsumed' | 'Cancelled' | 'PaymentExpired' | 'PaymentFailed'
 
 type ReservationResponse = {
   id: string
@@ -16,14 +16,18 @@ type ReservationResponse = {
   paymentId: string | null
   canEdit?: boolean
   canCancel?: boolean
+  paymentStatus?: ReservationPaymentStatus
+  paymentMethod?: PaymentMethod | null
 }
 
 const statusLabels: Record<ApiReservationStatus, ReservationStatus> = {
-  Confirmed: 'Em aberto',
-  AwaitingPayment: 'Aguardando pagamento',
+  Confirmed: 'Confirmada',
+  AwaitingPayment: 'Aguardando PIX',
   Consumed: 'Consumida',
   NotConsumed: 'Falta',
   Cancelled: 'Cancelada',
+  PaymentExpired: 'Cancelada',
+  PaymentFailed: 'Cancelada',
 }
 
 function toReservation(response: ReservationResponse): Reservation {
@@ -40,6 +44,8 @@ function toReservation(response: ReservationResponse): Reservation {
     paymentId: response.paymentId,
     canEdit: response.canEdit ?? (canChangeConfirmed && !response.paymentId),
     canCancel: response.canCancel ?? (canChangeConfirmed || response.status === 'AwaitingPayment'),
+    paymentStatus: response.paymentStatus ?? (response.status === 'Cancelled' ? 'Cancelled' : 'Pending'),
+    paymentMethod: response.paymentMethod ?? null,
   }
 }
 
@@ -61,7 +67,11 @@ export async function getReservations(includeCancelled = true) {
   const reservations = await authenticatedRequest<ReservationResponse[]>(
     `/reservations?includeCancelled=${includeCancelled}`,
   )
-  return reservations.map(toReservation)
+  return reservations.filter((reservation) => !['PaymentExpired', 'PaymentFailed'].includes(reservation.status)).map(toReservation)
+}
+
+export function getReservationPricing() {
+  return authenticatedRequest<ReservationPricing>('/reservations/pricing')
 }
 
 export async function createReservation(input: ReservationDraft) {

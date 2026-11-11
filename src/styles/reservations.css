@@ -82,3 +82,47 @@
 .pix-refund { display: grid; gap: 8px; padding: 12px; background: var(--surface-soft); border-radius: 10px; font-size: 12px; }
 .pix-refund a { color: var(--green-dark); }
 .reservation-actions { flex-wrap: wrap; justify-content: flex-end; }
+/* Reservation checkout and independent payment state */
+.checkout-notice { margin: 16px; padding: 14px; display: flex; gap: 12px; align-items: center; justify-content: space-between; border: 1px solid var(--control-border); border-radius: 12px; background: var(--surface-soft); color: var(--muted-strong); font-size: 13px; }
+.payment-methods { margin: 0; padding: 20px; display: grid; gap: 12px; border: 0; min-width: 0; }
+.payment-methods legend { padding: 20px 0 0; color: var(--muted-strong); font-size: 13px; font-weight: 700; }
+.payment-option { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 12px; align-items: start; padding: 18px; border: 2px solid var(--control-border); border-radius: 16px; color: var(--ink); background: var(--surface); cursor: pointer; }
+.payment-option.selected { border-color: var(--green); background: var(--surface-soft); }
+.payment-option:focus-within { outline: 2px solid var(--green); outline-offset: 3px; }
+.payment-option input { margin: 4px 0 0; width: 18px; height: 18px; accent-color: var(--green); }
+.payment-option > span { display: grid; gap: 6px; }
+.payment-option strong { font-size: 15px; }
+.payment-option small { color: var(--muted-strong); font-size: 12px; line-height: 1.6; }
+.payment-option .payment-option-tag { grid-column: 2; justify-self: start; padding: 4px 9px; border-radius: 20px; background: var(--surface-soft); color: var(--muted-strong); font-size: 10px; font-weight: 700; }
+.payment-option.unavailable { opacity: .65; cursor: not-allowed; border-style: dashed; }
+.checkout-feedback { padding: 16px; display: grid; gap: 8px; border: 1px solid; border-radius: 14px; font-size: 13px; line-height: 1.6; }
+.checkout-feedback--success { color: #186332; background: #edf9f0; border-color: #a6d9b4; }
+.checkout-feedback--warning { color: #79500a; background: #fff7e2; border-color: #e5ce91; }
+.checkout-feedback--error { color: #9b2831; background: #fff0f1; border-color: #e8afb4; }
+.checkout-feedback--info { color: #225579; background: #eff6fc; border-color: #b3cfe5; }
+.pix-preparing { display: grid; justify-items: center; gap: 12px; padding: 20px; color: var(--muted-strong); }
+.pix-footer { grid-template-columns: 1fr 1fr; }
+.reservation-statuses { display: grid !important; justify-items: end; gap: 6px !important; }
+.reservation-statuses small { color: var(--muted-strong); font-size: 10px; }
+.reservation-statuses .status { white-space: normal; }
+.payment-status { display: inline-flex; padding: 5px 9px; border-radius: 8px; font-size: 10px; font-weight: 800; line-height: 1.5; }
+.payment-status--paid { color: #186332; background: #edf9f0; }
+.payment-status--pending { color: #79500a; background: #fff7e2; }
+.payment-status--neutral { color: #225579; background: #eff6fc; }
+.payment-status--failed { color: #9b2831; background: #fff0f1; }
+.reservation-row--highlighted { outline: 2px solid var(--green); outline-offset: 3px; scroll-margin-top: 90px; }
+:root[data-theme='dark'] .checkout-feedback--success,
+:root[data-theme='dark'] .payment-status--paid { color: #b9eec7; background: #183824; border-color: #3e7650; }
+:root[data-theme='dark'] .checkout-feedback--warning,
+:root[data-theme='dark'] .payment-status--pending { color: #f3d696; background: #3d311a; border-color: #7a6438; }
+:root[data-theme='dark'] .checkout-feedback--error,
+:root[data-theme='dark'] .payment-status--failed { color: #ffbac1; background: #402227; border-color: #86444c; }
+:root[data-theme='dark'] .checkout-feedback--info,
+:root[data-theme='dark'] .payment-status--neutral { color: #b7dbf5; background: #1c3345; border-color: #456a88; }
+@media (max-width: 699px) {
+  .reservation-row { align-items: start; }
+  .reservation-meta { min-width: 0; width: 100%; display: grid; grid-template-columns: 1fr; gap: 12px; }
+  .reservation-statuses { justify-items: start; }
+  .reservation-actions { justify-content: flex-start; }
+  .pix-footer { grid-template-columns: 1fr; }
+}

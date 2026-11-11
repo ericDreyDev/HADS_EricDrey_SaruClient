@@ -2,27 +2,35 @@ import { useEffect, useRef, useState } from 'react'
 import { ApiError } from '../auth/api/authApi'
 import { FormError } from '../../shared/ui/FormError'
 import { Icon } from '../../shared/ui/Icon'
-import { getPixPayment } from './api/paymentsApi'
+import { cancelPixPayment, getPixPayment } from './api/paymentsApi'
 import type { PixPayment } from './api/paymentsApi'
 import { formatCurrency } from './model'
+import { paymentFeedback, pixCheckoutSucceeded } from './paymentState'
 
-export function PixPaymentDialog({ initialPayment, onClose, onChanged }: {
+export function PixPaymentDialog({ initialPayment, onClose, onChanged, onSuccess }: {
   initialPayment: PixPayment
   onClose: () => void
   onChanged: () => Promise<void>
+  onSuccess?: (payment: PixPayment) => Promise<void>
 }) {
   const [payment, setPayment] = useState(initialPayment)
   const [now, setNow] = useState(() => Date.now())
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
   const dialog = useRef<HTMLElement>(null)
-  const expired = now >= new Date(payment.expiresAt).getTime()
+  const successHandled = useRef(false)
+  const isPix = payment.method === 'Pix'
+  const expired = isPix && now >= new Date(payment.expiresAt).getTime()
   const paid = payment.paidAt !== null
-  const terminal = ['Cancelled', 'Expired', 'Refunded'].includes(payment.status)
-  const canPay = payment.status === 'Pending' && !expired && Boolean(payment.payload)
-  const refunding = payment.refunds.some((refund) => refund.status !== 'Done')
+  const terminal = ['Cancelled', 'Expired', 'Refunded', 'Failed'].includes(payment.status)
+  const canPay = isPix && !paid && payment.status === 'Pending' && !expired && Boolean(payment.payload)
+  const successful = pixCheckoutSucceeded(payment)
   const remaining = Math.max(0, Math.ceil((new Date(payment.expiresAt).getTime() - now) / 1000))
   const countdown = `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`
+  const feedback = !isPix && payment.status === 'Pending'
+    ? { tone: 'warning', title: 'Pagamento no RU', message: 'Sua reserva está confirmada. O pagamento está pendente e deve ser feito presencialmente no restaurante.' }
+    : paymentFeedback(payment, expired)
 
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null
@@ -45,38 +53,52 @@ export function PixPaymentDialog({ initialPayment, onClose, onChanged }: {
         const state = JSON.stringify(result)
         if (state !== lastState) {
           lastState = state
-          await onChanged()
+          try { await onChanged() } catch { /* Payment confirmation is authoritative even if refreshing the list fails. */ }
         }
-        if (['Cancelled', 'Expired', 'Refunded'].includes(result.status)
-          || result.paidAt && result.refunds.every((refund) => refund.status === 'Done')) return
+        if (result.method !== 'Pix' || ['Cancelled', 'Expired', 'Refunded', 'Failed'].includes(result.status)
+          || result.paidAt && result.status !== 'ReviewRequired' && result.refunds.every((refund) => refund.status === 'Done')) return
       } catch (requestError) {
         if (!active) return
-        setError(requestError instanceof ApiError ? requestError.message : 'Não foi possível atualizar o pagamento. Tentaremos novamente.')
+        setError(requestError instanceof ApiError && [401, 403].includes(requestError.status)
+          ? 'Sua sessão terminou. Entre novamente para consultar o resultado deste pagamento.'
+          : 'Não foi possível atualizar o pagamento. Não pague novamente; tentaremos conferir o resultado.')
         if (requestError instanceof ApiError && [401, 403, 404].includes(requestError.status)) return
       }
-      if (active) timer = window.setTimeout(poll, 3000)
+      if (active) timer = window.setTimeout(poll, 2000)
     }
     void poll()
-    const clock = window.setInterval(() => setNow(Date.now()), 1000)
-    return () => { active = false; window.clearTimeout(timer); window.clearInterval(clock) }
+    const ticker = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => { active = false; window.clearTimeout(timer); window.clearInterval(ticker) }
   }, [initialPayment, onChanged])
 
+  useEffect(() => {
+    if (!successful || !onSuccess || successHandled.current) return
+    const timer = window.setTimeout(() => {
+      successHandled.current = true
+      void onSuccess(payment)
+    }, 1500)
+    return () => window.clearTimeout(timer)
+  }, [successful, onSuccess, payment])
+
   const copy = async () => {
+    if (!canPay || !payment.payload) return
+    try { await navigator.clipboard.writeText(payment.payload); setCopied(true) }
+    catch { setError('Não foi possível copiar. Selecione e copie o código abaixo.') }
+  }
+  const cancel = async () => {
+    if (!window.confirm('Cancelar este PIX e todas as refeições desta tentativa?')) return
+    setCancelling(true)
+    setError('')
     try {
-      await navigator.clipboard.writeText(payment.payload ?? '')
-      setCopied(true)
-    } catch { setError('Não foi possível copiar. Selecione e copie o código abaixo.') }
+      setPayment(await cancelPixPayment(payment.id))
+      await onChanged().catch(() => undefined)
+    } catch (requestError) {
+      setError(requestError instanceof ApiError ? requestError.message : 'Não foi possível cancelar. Acompanhe o resultado antes de tentar novamente.')
+    } finally { setCancelling(false) }
   }
 
-  const title = payment.status === 'Refunded' ? 'Pagamento devolvido'
-    : paid && refunding ? 'Devolução em andamento'
-      : paid ? 'Pagamento recebido'
-        : payment.status === 'ReviewRequired' ? 'Conferindo pagamento'
-          : payment.status === 'Cancelled' ? 'Seleção cancelada'
-            : terminal || expired ? 'Prazo de pagamento encerrado' : 'Pague com PIX'
-
   return <div className="modal-backdrop" role="presentation"><section ref={dialog} className="reservation-modal pix-modal" role="dialog" aria-modal="true" aria-labelledby="pix-title" onKeyDown={(event) => {
-    if (event.key === 'Escape') { event.stopPropagation(); onClose(); return }
+    if (event.key === 'Escape' && !cancelling) { event.stopPropagation(); onClose(); return }
     if (event.key !== 'Tab') return
     const controls = event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), textarea, a[href]')
     const first = controls[0]
@@ -84,28 +106,24 @@ export function PixPaymentDialog({ initialPayment, onClose, onChanged }: {
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
   }}>
-    <header className="modal-header"><div><p>Pagamento das reservas</p><h2 id="pix-title">{title}</h2></div><button className="icon-button" type="button" onClick={onClose} aria-label="Fechar pagamento"><Icon name="close" /></button></header>
+    <header className="modal-header"><div><p>Pagamento das reservas</p><h2 id="pix-title">{feedback.title}</h2></div><button className="icon-button" type="button" disabled={cancelling} onClick={onClose} aria-label="Fechar pagamento"><Icon name="close" /></button></header>
     <div className="pix-content">
-      <div className="pix-total"><span>{payment.reservations.length} {payment.reservations.length === 1 ? 'refeição' : 'refeições'}</span><strong>{formatCurrency(payment.amount)}</strong></div>
-      <div role="status" aria-live="polite">
-        {payment.status === 'Refunded' ? <p>O valor foi devolvido. Consulte os comprovantes abaixo.</p>
-          : paid ? <p>{refunding ? 'A reserva foi cancelada. Acompanhe a devolução abaixo.' : payment.refunds.length ? 'Os estornos solicitados foram concluídos.' : 'Suas reservas foram confirmadas. Você já pode consultá-las no RU.'}</p>
-            : payment.status === 'ReviewRequired' ? <p>Estamos conferindo o resultado com o Asaas. Acompanhe este pagamento em Minhas reservas.</p>
-              : terminal || expired ? <p>{payment.status === 'Cancelled' ? 'Esta seleção foi cancelada.' : 'Não efetue o pagamento deste PIX. As reservas sem pagamento serão canceladas.'} Se você já pagou, aguarde a conferência; pagamentos fora do prazo serão devolvidos.</p>
-                : canPay ? <p>Escaneie o QR Code ou use o código copia e cola no aplicativo do seu banco.</p>
-                  : <p>Estamos preparando seu PIX. Aguarde alguns instantes…</p>}
-      </div>
+      <div className={`checkout-feedback checkout-feedback--${feedback.tone}`} role={feedback.tone === 'error' ? 'alert' : 'status'} aria-live="polite"><strong>{successful ? 'Reserva confirmada · Pagamento pago' : feedback.tone === 'error' ? 'Reserva não concluída' : feedback.title}</strong><p>{feedback.message}</p>{successful && onSuccess && <p>Abrindo sua reserva…</p>}</div>
+      <div className="pix-total"><span>{payment.reservations.length} {payment.reservations.length === 1 ? 'refeição' : 'refeições'} · {isPix ? 'PIX' : 'Pagar no RU'}</span><strong>{formatCurrency(payment.amount)}</strong></div>
       {canPay && <>
         {payment.encodedImage && <img className="pix-qr" src={`data:image/png;base64,${payment.encodedImage}`} alt="QR Code para pagamento das reservas via PIX" />}
-        <p className="pix-deadline">Pague em até <strong>{countdown}</strong></p>
+        <p className="pix-deadline">Tempo para pagar <strong>{countdown}</strong></p>
         <label className="pix-code">PIX copia e cola<textarea readOnly value={payment.payload ?? ''} onFocus={(event) => event.target.select()} /></label>
-        <button className="gradient-button" type="button" onClick={copy}>{copied ? 'Código copiado' : 'Copiar código PIX'}</button>
-        <p className="pix-hint">A confirmação é automática após o recebimento. Fechar esta janela não cancela o PIX.</p>
+        <button className="gradient-button" type="button" onClick={copy}>{copied ? 'Código copiado!' : 'Copiar código PIX'}</button>
+        <p className="pix-hint">Mantenha esta janela aberta para receber a confirmação. Você também pode acompanhar o PIX em Minhas reservas.</p>
       </>}
-      {payment.refunds.map((refund) => <div className="pix-refund" key={refund.reservationId}><span>{formatCurrency(refund.amount)} — {refund.status === 'Done' ? 'Devolvido' : refund.status === 'ReviewRequired' ? 'Em conferência pelo RU' : 'Aguardando devolução'}</span>{refund.receiptUrl && <a href={refund.receiptUrl} target="_blank" rel="noreferrer">Comprovante</a>}</div>)}
-      {payment.message && <p className="pix-hint">{payment.message}</p>}
+      {isPix && !paid && !terminal && !expired && !canPay && <div className="pix-preparing" role="status"><span className="loading-spinner" /><p>Aguardando o código de pagamento…</p></div>}
+      {payment.refunds.map((refund) => <div className={`pix-refund ${refund.status === 'Done' ? 'pix-refund--done' : ''}`} key={refund.reservationId}><span>{formatCurrency(refund.amount)} — {refund.status === 'Done' ? 'Reembolsado' : refund.status === 'ReviewRequired' ? 'Reembolso em conferência pelo RU' : 'Reembolso em andamento'}</span>{refund.receiptUrl && <a href={refund.receiptUrl} target="_blank" rel="noreferrer">Ver comprovante</a>}</div>)}
       <FormError message={error} />
     </div>
-    <footer className="modal-footer"><button className="secondary-button" type="button" onClick={onClose}>{paid || terminal ? 'Concluir' : 'Acompanhar em Minhas reservas'}</button></footer>
+    <footer className="modal-footer pix-footer">
+      {isPix && !paid && !terminal && !expired && <button className="ghost-button" type="button" disabled={cancelling} onClick={cancel}>{cancelling ? 'Cancelando…' : 'Cancelar PIX'}</button>}
+      <button className="secondary-button" type="button" disabled={cancelling} onClick={() => successful && onSuccess ? void onSuccess(payment) : onClose()}>{successful ? 'Ver minha reserva' : terminal || expired ? 'Voltar às reservas' : 'Acompanhar nas reservas'}</button>
+    </footer>
   </section></div>
 }
