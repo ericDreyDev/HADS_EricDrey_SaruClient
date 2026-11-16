@@ -27,6 +27,7 @@ import {
 } from '../features/reservations/api/reservationsApi'
 import type { PaymentMethod, Reservation, ReservationDraft } from '../features/reservations/model'
 import { SettingsPage } from '../features/settings/SettingsPage'
+import { ManagementPage } from '../features/management/ManagementPage'
 import { createReservationPayment, getPixPayment } from '../features/reservations/api/paymentsApi'
 import type { PixPayment } from '../features/reservations/api/paymentsApi'
 import { PixPaymentDialog } from '../features/reservations/PixPaymentDialog'
@@ -230,8 +231,8 @@ function App() {
 
   if (!authReady) return <SessionLoading dark={dark} onToggle={toggleTheme} />
 
-  const isAppPage = page === 'home' || page === 'reservations' || page === 'settings'
-  const visiblePage: Page = isAppPage && !session ? 'login' : page
+  const isAppPage = page === 'home' || page === 'reservations' || page === 'settings' || page === 'management'
+  const visiblePage: Page = isAppPage && !session ? 'login' : page === 'management' && !session?.user.roles.includes('Administrator') ? 'home' : page
 
   return <>
     {visiblePage === 'login' && <LoginPage dark={dark} onToggle={toggleTheme} onLogin={authenticate} onSignup={() => setPage('signup')} onForgotPassword={() => setPage('forgot-password')} />}
@@ -242,6 +243,7 @@ function App() {
     {visiblePage === 'home' && session && <DashboardPage dark={dark} onToggle={toggleTheme} onNavigate={setPage} onLogout={endSession} user={session.user} reservations={reservations} reservationsLoading={reservationsLoading} onCreateReservations={createReservations} onPayment={openPayment} />}
     {visiblePage === 'reservations' && session && <ReservationsPage dark={dark} onToggle={toggleTheme} onNavigate={setPage} onLogout={endSession} user={session.user} reservations={reservations} loading={reservationsLoading} onCancel={cancelReservation} onUpdate={editReservation} onPayment={openPayment} highlightedIds={highlightedReservations} />}
     {visiblePage === 'settings' && session && <SettingsPage dark={dark} onToggle={toggleTheme} onNavigate={setPage} onLogout={endSession} user={session.user} />}
+    {visiblePage === 'management' && session && <ManagementPage dark={dark} onToggle={toggleTheme} onNavigate={setPage} onLogout={endSession} user={session.user} />}
     {toast && <div className="toast" role="status">{toast}</div>}
     {session && payment && <PixPaymentDialog key={payment.id} initialPayment={payment} onClose={() => { setPayment(null); setPage('reservations'); void reloadReservations().catch(() => undefined) }} onChanged={reloadReservations} onSuccess={completePaymentOnSuccess ? completeCheckout : undefined} />}
   </>

@@ -1,0 +1,41 @@
+.management { margin-top: 28px; }
+.management-tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--control-border); padding-bottom: 12px; }
+.management button, .management-link { min-height: 42px; padding: 10px 14px; border-radius: 10px; background: var(--surface-soft); color: var(--ink); border: 1px solid var(--control-border); font: inherit; font-size: 13px; font-weight: 700; }
+.management button:hover, .management-link:hover { border-color: var(--orange); }
+.management button:disabled { opacity: .55; cursor: not-allowed; }
+.management-tabs button[aria-current], .management button.management-primary { color: #fff; background: var(--orange-dark); border-color: var(--orange-dark); }
+.management-panel { min-width: 0; padding: 20px; border: 1px solid var(--control-border); border-radius: 20px; background: var(--surface-raised); }
+.management-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
+.management h2 { margin: 0; font-size: 21px; color: var(--ink); }
+.management h3 { margin: 0; color: var(--ink); font-size: 16px; }
+.management-heading p { margin-top: 7px; color: var(--muted); line-height: 1.5; font-size: 13px; }
+.management-filters, .management-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); align-items: end; gap: 14px; margin: 0 0 20px; padding: 0; border: 0; }
+.management label { display: grid; align-content: start; gap: 7px; font-size: 12px; font-weight: 700; color: var(--ink); }
+.management input, .management select { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--control-border); border-radius: 10px; padding: 10px; color: var(--ink); background: var(--surface); font: inherit; font-size: 14px; }
+.management input[type=file] { font-size: 12px; }
+.management small, .management figcaption { display: block; margin-top: 5px; color: var(--muted); line-height: 1.5; font-size: 12px; font-weight: 400; }
+.management label.management-checkbox { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.management-checkbox input { width: 18px; min-height: 18px; accent-color: var(--orange); }
+.management-editor { padding: 18px; margin: 20px 0; background: var(--surface-soft); border: 1px solid var(--control-border); border-radius: 14px; }
+.management-table-wrap { width: 100%; overflow-x: auto; }
+.management table { width: 100%; border-collapse: collapse; color: var(--ink); text-align: left; font-size: 13px; }
+.management th { padding: 12px; color: var(--muted); font-size: 11px; white-space: nowrap; border-bottom: 1px solid var(--control-border); }
+.management td { padding: 16px 12px; border-bottom: 1px solid var(--control-border); vertical-align: top; }
+.management td strong { display: block; min-width: 120px; }
+.management-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.management-badge { display: inline-block; padding: 5px 9px; border-radius: 7px; background: var(--surface-soft); font-size: 11px; white-space: nowrap; }
+.management-badge.is-success { color: var(--green); background: var(--surface-soft); border: 1px solid var(--green); }
+.management-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 20px; color: var(--muted); font-size: 12px; }
+.management-pagination > div { display: flex; gap: 8px; }
+.management-feedback { padding: 32px 10px; text-align: center; color: var(--muted); font-size: 14px; }
+.management-feedback button { margin-top: 12px; }
+.management-notice { padding: 14px; margin: 16px 0; border-left: 3px solid var(--orange); background: var(--surface-soft); color: var(--ink); line-height: 1.5; font-size: 13px; }
+.management-menu-preview { margin: 18px 0; }
+.management-menu-preview img { display: block; max-width: 100%; max-height: 420px; border-radius: 10px; border: 1px solid var(--control-border); }
+.management-menu-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+.management-menu-list article { overflow: hidden; border: 1px solid var(--control-border); border-radius: 14px; }
+.management-menu-list article img { display: block; width: 100%; aspect-ratio: 1.6; object-fit: contain; background: white; }
+.management-menu-list article > div { padding: 16px; }
+.management-link { text-decoration: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media (max-width: 560px) { .management-panel { padding: 14px; } .management-filters, .management-form-grid { grid-template-columns: 1fr; } .management-tabs { gap: 5px; } .management-tabs button { flex: 1; padding: 10px 8px; } }

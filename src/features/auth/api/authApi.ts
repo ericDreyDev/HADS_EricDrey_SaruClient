@@ -2,7 +2,7 @@ const localApiUrl = `${window.location.protocol}//${window.location.hostname}:52
 const productionApiUrl = 'https://saru-engine.onrender.com'
 const configuredApiUrl = import.meta.env.VITE_SARU_API_URL?.trim()
 
-const API_URL = (
+export const API_URL = (
   configuredApiUrl || (import.meta.env.DEV ? localApiUrl : productionApiUrl)
 ).replace(/\/$/, '')
 
@@ -60,7 +60,7 @@ async function request<T>(path: string, init: RequestInit = {}, authenticated = 
   const headers = new Headers(init.headers)
   headers.set('Accept', 'application/json')
 
-  if (init.body) headers.set('Content-Type', 'application/json')
+  if (init.body && !(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
   if (authenticated && accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
 
   let response: Response

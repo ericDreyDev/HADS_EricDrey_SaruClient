@@ -2,28 +2,30 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import clockIcon from '../../assets/clock.svg'
 import homeIcon from '../../assets/home.svg'
+import shieldIcon from '../../assets/shield.svg'
 import type { AppPage } from '../../app/types'
 import type { AuthUser } from '../../features/auth/api/authApi'
 import { Icon } from '../ui/Icon'
 import { Logo } from '../ui/Logo'
 import { initials, roleLabel } from '../user/userPresentation'
 
-const navigationItems: { page: AppPage; label: string; icon: 'home' | 'history' | 'settings' }[] = [
+const navigationItems: { page: AppPage; label: string; icon: 'home' | 'history' | 'settings' | 'management' }[] = [
   { page: 'home', label: 'Início', icon: 'home' },
   { page: 'reservations', label: 'Minhas reservas', icon: 'history' },
+  { page: 'management', label: 'Gestão do RU', icon: 'management' },
   { page: 'settings', label: 'Configurações', icon: 'settings' },
 ]
 
-function NavigationIcon({ name }: { name: 'home' | 'history' | 'settings' }) {
+function NavigationIcon({ name }: { name: 'home' | 'history' | 'settings' | 'management' }) {
   if (name === 'settings') return <Icon name="settings" />
-  return <img src={name === 'home' ? homeIcon : clockIcon} alt="" />
+  return <img src={name === 'management' ? shieldIcon : name === 'home' ? homeIcon : clockIcon} alt="" />
 }
 
 function Sidebar({ page, onNavigate, user, onLogout, mobile = false, onClose }: { page: AppPage; onNavigate: (page: AppPage) => void; user: AuthUser; onLogout: () => void; mobile?: boolean; onClose?: () => void }) {
   const navigate = (destination: AppPage) => { onNavigate(destination); onClose?.() }
   return <aside className={mobile ? 'mobile-drawer' : 'sidebar desktop-sidebar'} aria-label={mobile ? 'Menu principal' : undefined}>
     <div className="sidebar-top"><Logo compact markOnly onClick={() => navigate('home')} destination="Ir para o início" />{mobile && <button className="icon-button drawer-close" type="button" onClick={onClose} aria-label="Fechar menu"><Icon name="close" /></button>}</div>
-    <nav>{navigationItems.map((item) => <button className={page === item.page ? 'active' : ''} type="button" key={item.page} onClick={() => navigate(item.page)}><span><NavigationIcon name={item.icon} /></span>{item.label}</button>)}</nav>
+    <nav>{navigationItems.filter((item) => item.page !== 'management' || user.roles.includes('Administrator')).map((item) => <button className={page === item.page ? 'active' : ''} type="button" key={item.page} onClick={() => navigate(item.page)}><span><NavigationIcon name={item.icon} /></span>{item.label}</button>)}</nav>
     <div className="sidebar-account"><span className="avatar">{initials(user.fullName)}</span><span><b>{user.fullName}</b><small>{roleLabel(user)}</small></span></div>
     <button className="sidebar-logout" type="button" onClick={onLogout}><Icon name="logout" />Sair</button>
   </aside>

@@ -1,7 +1,8 @@
 import type { AuthUser } from '../auth/api/authApi'
 
 export type MealType = 'lunch' | 'dinner'
-export type ReservationStatus = 'Confirmada' | 'Aguardando PIX' | 'Consumida' | 'Falta' | 'Cancelada'
+export type ReservationStatus = 'Confirmada' | 'Aguardando PIX' | 'Cancelada'
+export type ReservationConsumptionStatus = 'AwaitingConsumption' | 'Consumed' | 'NotConsumed' | 'NotApplicable'
 export type PaymentMethod = 'Pix' | 'PayAtRestaurant'
 export type ReservationPaymentStatus = 'Pending' | 'Paid' | 'RefundPending' | 'Refunded' | 'Cancelled' | 'Expired' | 'Failed' | 'ReviewRequired'
 
@@ -19,6 +20,7 @@ export type Reservation = {
   canCancel: boolean
   paymentStatus: ReservationPaymentStatus
   paymentMethod: PaymentMethod | null
+  consumptionStatus: ReservationConsumptionStatus
 }
 
 export type ReservationDraft = Pick<Reservation, 'date' | 'meal' | 'juice' | 'marmita'>
@@ -110,4 +112,11 @@ export const paymentStatusLabels: Record<ReservationPaymentStatus, string> = {
   Expired: 'PIX expirado',
   Failed: 'Falha no pagamento',
   ReviewRequired: 'Em conferência',
+}
+
+export const consumptionStatusLabels: Record<ReservationConsumptionStatus, string> = {
+  AwaitingConsumption: 'Ainda não consumida',
+  Consumed: 'Consumida',
+  NotConsumed: 'Não consumida',
+  NotApplicable: 'Não se aplica',
 }

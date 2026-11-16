@@ -1,10 +1,10 @@
 import cancelIcon from '../../assets/cancel-circle.svg'
-import { formatCurrency, fromDateKey, mealLabel, paymentStatusLabels } from './model'
+import { consumptionStatusLabels, formatCurrency, fromDateKey, mealLabel, paymentStatusLabels } from './model'
 import type { Reservation } from './model'
 
 export function ReservationCard({ reservation, onEdit, onCancel, onPayment, busy = false, highlighted = false }: { reservation: Reservation; onEdit?: () => void; onCancel?: () => void; onPayment?: () => void; busy?: boolean; highlighted?: boolean }) {
   const date = fromDateKey(reservation.date)
-  const statusClass = ['Confirmada', 'Consumida'].includes(reservation.status) ? 'success' : reservation.status === 'Falta' || reservation.status === 'Cancelada' ? 'danger' : 'open'
+  const statusClass = reservation.status === 'Confirmada' ? 'success' : reservation.status === 'Cancelada' ? 'danger' : 'open'
   const paymentTone = reservation.paymentStatus === 'Paid' ? 'paid'
     : ['Refunded', 'Cancelled'].includes(reservation.paymentStatus) ? 'neutral'
       : ['Expired', 'Failed'].includes(reservation.paymentStatus) ? 'failed' : 'pending'
@@ -14,6 +14,7 @@ export function ReservationCard({ reservation, onEdit, onCancel, onPayment, busy
     <div className="reservation-meta"><div className="reservation-statuses">
       <span className={`status status--${statusClass}`}>Reserva: {reservation.status}</span>
       <span className={`payment-status payment-status--${paymentTone}`}>Pagamento: {paymentStatusLabels[reservation.paymentStatus]}</span>
+      {reservation.consumptionStatus !== 'NotApplicable' && <span className={`consumption-status consumption-status--${reservation.consumptionStatus}`}>Consumo: {consumptionStatusLabels[reservation.consumptionStatus]}</span>}
       <small>{reservation.paymentMethod === 'PayAtRestaurant' ? 'Pagar no RU' : reservation.paymentMethod === 'Pix' ? 'PIX' : 'Forma de pagamento não informada'}</small>
       <b>{formatCurrency(reservation.price)}</b>
     </div>

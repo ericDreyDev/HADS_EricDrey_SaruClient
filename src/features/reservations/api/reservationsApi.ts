@@ -1,5 +1,5 @@
 import { authenticatedRequest } from '../../auth/api/authApi'
-import type { MealType, PaymentMethod, Reservation, ReservationDraft, ReservationStatus, ReservationPaymentStatus, ReservationPricing } from '../model'
+import type { MealType, PaymentMethod, Reservation, ReservationDraft, ReservationStatus, ReservationPaymentStatus, ReservationPricing, ReservationConsumptionStatus } from '../model'
 
 type ApiMealType = 'Lunch' | 'Dinner'
 type ApiReservationStatus = 'Confirmed' | 'AwaitingPayment' | 'Consumed' | 'NotConsumed' | 'Cancelled' | 'PaymentExpired' | 'PaymentFailed'
@@ -18,16 +18,27 @@ type ReservationResponse = {
   canCancel?: boolean
   paymentStatus?: ReservationPaymentStatus
   paymentMethod?: PaymentMethod | null
+  consumptionStatus?: ReservationConsumptionStatus
 }
 
 const statusLabels: Record<ApiReservationStatus, ReservationStatus> = {
   Confirmed: 'Confirmada',
   AwaitingPayment: 'Aguardando PIX',
-  Consumed: 'Consumida',
-  NotConsumed: 'Falta',
+  Consumed: 'Confirmada',
+  NotConsumed: 'Confirmada',
   Cancelled: 'Cancelada',
   PaymentExpired: 'Cancelada',
   PaymentFailed: 'Cancelada',
+}
+
+const consumptionStatuses: Record<ApiReservationStatus, ReservationConsumptionStatus> = {
+  Confirmed: 'AwaitingConsumption',
+  AwaitingPayment: 'NotApplicable',
+  Consumed: 'Consumed',
+  NotConsumed: 'NotConsumed',
+  Cancelled: 'NotApplicable',
+  PaymentExpired: 'NotApplicable',
+  PaymentFailed: 'NotApplicable',
 }
 
 function toReservation(response: ReservationResponse): Reservation {
@@ -46,6 +57,7 @@ function toReservation(response: ReservationResponse): Reservation {
     canCancel: response.canCancel ?? (canChangeConfirmed || response.status === 'AwaitingPayment'),
     paymentStatus: response.paymentStatus ?? (response.status === 'Cancelled' ? 'Cancelled' : 'Pending'),
     paymentMethod: response.paymentMethod ?? null,
+    consumptionStatus: response.consumptionStatus ?? consumptionStatuses[response.status],
   }
 }
 

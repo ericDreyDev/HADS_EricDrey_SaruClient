@@ -12,7 +12,8 @@ import { Icon } from '../../shared/ui/Icon'
 export function DashboardPage({ dark, onToggle, onNavigate, onLogout, user, reservations, reservationsLoading, onCreateReservations, onPayment }: { dark: boolean; onToggle: () => void; onNavigate: (page: AppPage) => void; onLogout: () => void; user: AuthUser; reservations: Reservation[]; reservationsLoading: boolean; onCreateReservations: (reservations: ReservationDraft[], method: PaymentMethod) => Promise<void>; onPayment: (id: string) => Promise<void> }) {
   const [reservationOpen, setReservationOpen] = useState(false)
   const firstName = user.fullName.split(/\s+/).filter(Boolean)[0] || 'usuário'
-  const upcoming = reservations.filter((reservation) => ['Confirmada', 'Aguardando PIX'].includes(reservation.status)).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3)
+  const upcoming = reservations.filter((reservation) => ['Confirmada', 'Aguardando PIX'].includes(reservation.status)
+    && !['Consumed', 'NotConsumed'].includes(reservation.consumptionStatus)).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3)
   const confirm = async (newReservations: ReservationDraft[], method: PaymentMethod) => { await onCreateReservations(newReservations, method); setReservationOpen(false) }
   return <AppLayout page="home" title={`Olá, ${firstName}.`} subtitle="" dark={dark} onToggle={onToggle} onNavigate={onNavigate} onLogout={onLogout} user={user}>
     <section className="home-grid"><WeeklyMenu /></section>

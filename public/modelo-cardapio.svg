@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <rect width="1600" height="1000" fill="#fff"/>
+  <rect width="1600" height="150" fill="#40582b"/>
+  <g font-family="Arial, sans-serif">
+    <text x="60" y="65" fill="#fff" font-size="38" font-weight="bold">RU · CARDÁPIO DA SEMANA</text>
+    <text x="60" y="112" fill="#fff" font-size="24">Período: ____/____ a ____/____ · Preencha antes de publicar</text>
+    <path d="M60 210H1540M60 270H1540M60 570H1540M60 910H1540M60 210V910M356 210V910M652 210V910M948 210V910M1244 210V910M1540 210V910" fill="none" stroke="#cad2c5" stroke-width="2"/>
+    <g fill="#40582b" font-size="27" font-weight="bold" text-anchor="middle">
+      <text x="208" y="250">SEGUNDA</text><text x="504" y="250">TERÇA</text><text x="800" y="250">QUARTA</text><text x="1096" y="250">QUINTA</text><text x="1392" y="250">SEXTA</text>
+    </g>
+    <g fill="#a95718" font-size="24" font-weight="bold">
+      <text x="82" y="320">ALMOÇO</text><text x="378" y="320">ALMOÇO</text><text x="674" y="320">ALMOÇO</text><text x="970" y="320">ALMOÇO</text><text x="1266" y="320">ALMOÇO</text>
+      <text x="82" y="620">JANTAR</text><text x="378" y="620">JANTAR</text><text x="674" y="620">JANTAR</text><text x="970" y="620">JANTAR</text><text x="1266" y="620">JANTAR</text>
+    </g>
+    <g fill="#616c59" font-size="20">
+      <text x="82" y="365">Prato principal</text><text x="82" y="400">Acompanhamentos</text><text x="82" y="435">Saladas</text><text x="82" y="470">Sobremesa</text><text x="82" y="505">Restrições / alérgenos</text>
+      <text x="82" y="665">Prato principal</text><text x="82" y="700">Acompanhamentos</text><text x="82" y="735">Saladas</text><text x="82" y="770">Sobremesa</text><text x="82" y="805">Restrições / alérgenos</text>
+      <text x="60" y="960">Inclua os alimentos e os símbolos da legenda do RU. Cardápio sujeito a alterações.</text>
+    </g>
+  </g>
+</svg>

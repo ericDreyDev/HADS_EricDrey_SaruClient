@@ -110,15 +110,22 @@
 .payment-status--pending { color: #79500a; background: #fff7e2; }
 .payment-status--neutral { color: #225579; background: #eff6fc; }
 .payment-status--failed { color: #9b2831; background: #fff0f1; }
+.consumption-status { display: inline-flex; padding: 5px 9px; border-radius: 8px; font-size: 10px; font-weight: 800; line-height: 1.5; }
+.consumption-status--AwaitingConsumption { color: #225579; background: #eff6fc; }
+.consumption-status--Consumed { color: #186332; background: #edf9f0; }
+.consumption-status--NotConsumed { color: #79500a; background: #fff7e2; }
 .reservation-row--highlighted { outline: 2px solid var(--green); outline-offset: 3px; scroll-margin-top: 90px; }
 :root[data-theme='dark'] .checkout-feedback--success,
-:root[data-theme='dark'] .payment-status--paid { color: #b9eec7; background: #183824; border-color: #3e7650; }
+:root[data-theme='dark'] .payment-status--paid,
+:root[data-theme='dark'] .consumption-status--Consumed { color: #b9eec7; background: #183824; border-color: #3e7650; }
 :root[data-theme='dark'] .checkout-feedback--warning,
-:root[data-theme='dark'] .payment-status--pending { color: #f3d696; background: #3d311a; border-color: #7a6438; }
+:root[data-theme='dark'] .payment-status--pending,
+:root[data-theme='dark'] .consumption-status--NotConsumed { color: #f3d696; background: #3d311a; border-color: #7a6438; }
 :root[data-theme='dark'] .checkout-feedback--error,
 :root[data-theme='dark'] .payment-status--failed { color: #ffbac1; background: #402227; border-color: #86444c; }
 :root[data-theme='dark'] .checkout-feedback--info,
-:root[data-theme='dark'] .payment-status--neutral { color: #b7dbf5; background: #1c3345; border-color: #456a88; }
+:root[data-theme='dark'] .payment-status--neutral,
+:root[data-theme='dark'] .consumption-status--AwaitingConsumption { color: #b7dbf5; background: #1c3345; border-color: #456a88; }
 @media (max-width: 699px) {
   .reservation-row { align-items: start; }
   .reservation-meta { min-width: 0; width: 100%; display: grid; grid-template-columns: 1fr; gap: 12px; }

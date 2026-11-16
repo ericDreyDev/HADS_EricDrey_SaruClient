@@ -5,7 +5,8 @@ import { AppLayout } from '../../shared/layout/AppLayout'
 import { Icon } from '../../shared/ui/Icon'
 import { EditReservationFlow } from './EditReservationFlow'
 import { ReservationCard } from './ReservationCard'
-import type { Reservation, ReservationDraft, ReservationStatus } from './model'
+import { consumptionStatusLabels } from './model'
+import type { Reservation, ReservationConsumptionStatus, ReservationDraft, ReservationStatus } from './model'
 
 export function ReservationsPage({ dark, onToggle, onNavigate, onLogout, user, reservations, loading, onCancel, onUpdate, onPayment, highlightedIds = [] }: {
   dark: boolean
@@ -21,11 +22,14 @@ export function ReservationsPage({ dark, onToggle, onNavigate, onLogout, user, r
   highlightedIds?: string[]
 }) {
   const [filter, setFilter] = useState<'Todas' | ReservationStatus>('Todas')
+  const [consumptionFilter, setConsumptionFilter] = useState<'Todos' | ReservationConsumptionStatus>('Todos')
   const [editing, setEditing] = useState<Reservation | null>(null)
   const [cancellingId, setCancellingId] = useState<string | null>(null)
-  const filters: ('Todas' | ReservationStatus)[] = ['Todas', 'Aguardando PIX', 'Confirmada', 'Consumida', 'Falta', 'Cancelada']
+  const filters: ('Todas' | ReservationStatus)[] = ['Todas', 'Aguardando PIX', 'Confirmada', 'Cancelada']
+  const consumptionFilters: ('Todos' | ReservationConsumptionStatus)[] = ['Todos', 'AwaitingConsumption', 'Consumed', 'NotConsumed']
   const filtered = reservations
     .filter((reservation) => filter === 'Todas' || reservation.status === filter)
+    .filter((reservation) => consumptionFilter === 'Todos' || reservation.consumptionStatus === consumptionFilter)
     .sort((a, b) => Number(highlightedIds.includes(b.id)) - Number(highlightedIds.includes(a.id))
       || b.date.localeCompare(a.date))
 
@@ -49,7 +53,8 @@ export function ReservationsPage({ dark, onToggle, onNavigate, onLogout, user, r
   return <AppLayout page="reservations" title="Minhas reservas" subtitle="Acompanhe refeições futuras e consulte seu histórico." dark={dark} onToggle={onToggle} onNavigate={onNavigate} onLogout={onLogout} user={user}>
     <section className="history-panel">
       <div className="history-heading"><div><p>Histórico</p><h2>Suas refeições</h2></div><span>{filtered.length} {filtered.length === 1 ? 'reserva' : 'reservas'}</span></div>
-      <div className="filter-chips" aria-label="Filtrar reservas">{filters.map((item) => <button className={filter === item ? 'active' : ''} type="button" key={item} onClick={() => setFilter(item)}>{item}</button>)}</div>
+      <div className="filter-chips" role="group" aria-label="Filtrar por situação da reserva"><span>Reserva</span>{filters.map((item) => <button className={filter === item ? 'active' : ''} type="button" aria-pressed={filter === item} key={item} onClick={() => setFilter(item)}>{item}</button>)}</div>
+      <div className="filter-chips" role="group" aria-label="Filtrar por consumo"><span>Consumo</span>{consumptionFilters.map((item) => <button className={consumptionFilter === item ? 'active' : ''} type="button" aria-pressed={consumptionFilter === item} key={item} onClick={() => setConsumptionFilter(item)}>{item === 'Todos' ? item : consumptionStatusLabels[item]}</button>)}</div>
       {loading
         ? <div className="reservations-loading"><span className="loading-spinner" /><p>Carregando reservas…</p></div>
         : filtered.length
