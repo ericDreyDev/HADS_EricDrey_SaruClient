@@ -1,7 +1,10 @@
 import type { AuthUser } from '../auth/api/authApi'
 
 export type MealType = 'lunch' | 'dinner'
-export type ReservationStatus = 'Em aberto' | 'Aguardando pagamento' | 'Consumida' | 'Falta' | 'Cancelada'
+export type ReservationStatus = 'Confirmada' | 'Aguardando PIX' | 'Cancelada'
+export type ReservationConsumptionStatus = 'AwaitingConsumption' | 'Consumed' | 'NotConsumed' | 'NotApplicable'
+export type PaymentMethod = 'Pix' | 'PayAtRestaurant'
+export type ReservationPaymentStatus = 'Pending' | 'Paid' | 'RefundPending' | 'Refunded' | 'Cancelled' | 'Expired' | 'Failed' | 'ReviewRequired'
 
 export type Reservation = {
   id: string
@@ -13,9 +16,16 @@ export type Reservation = {
   price: number
   deadline: string
   paymentId?: string | null
+  canEdit: boolean
+  canCancel: boolean
+  paymentStatus: ReservationPaymentStatus
+  paymentMethod: PaymentMethod | null
+  consumptionStatus: ReservationConsumptionStatus
 }
 
-export type ReservationDraft = Omit<Reservation, 'id' | 'status' | 'price' | 'deadline' | 'paymentId'>
+export type ReservationDraft = Pick<Reservation, 'date' | 'meal' | 'juice' | 'marmita'>
+
+export type ReservationPricing = { mealPrice: number; juicePrice: number; takeoutContainerPrice: number }
 
 export type DaySelection = {
   lunch: boolean
@@ -88,5 +98,25 @@ export function mealAvailability(date: Date, meal: MealType, now = new Date()) {
 }
 
 export function mealPriceFor(user: AuthUser) {
-  return reservationRules.mealPrices[user.roles[0] ?? 'Visitor'] ?? 20
+  if (user.roles.includes('Student')) return reservationRules.mealPrices.Student
+  if (user.roles.includes('Employee')) return reservationRules.mealPrices.Employee
+  return 20
+}
+
+export const paymentStatusLabels: Record<ReservationPaymentStatus, string> = {
+  Pending: 'Pendente pagamento',
+  Paid: 'Pago',
+  RefundPending: 'Reembolso em andamento',
+  Refunded: 'Reembolsado',
+  Cancelled: 'Cancelado',
+  Expired: 'PIX expirado',
+  Failed: 'Falha no pagamento',
+  ReviewRequired: 'Em conferência',
+}
+
+export const consumptionStatusLabels: Record<ReservationConsumptionStatus, string> = {
+  AwaitingConsumption: 'Ainda não consumida',
+  Consumed: 'Consumida',
+  NotConsumed: 'Não consumida',
+  NotApplicable: 'Não se aplica',
 }

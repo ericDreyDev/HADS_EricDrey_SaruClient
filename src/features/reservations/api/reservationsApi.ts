@@ -1,8 +1,8 @@
 import { authenticatedRequest } from '../../auth/api/authApi'
-import type { MealType, Reservation, ReservationDraft, ReservationStatus } from '../model'
+import type { MealType, PaymentMethod, Reservation, ReservationDraft, ReservationStatus, ReservationPaymentStatus, ReservationPricing, ReservationConsumptionStatus } from '../model'
 
 type ApiMealType = 'Lunch' | 'Dinner'
-type ApiReservationStatus = 'Confirmed' | 'AwaitingPayment' | 'Consumed' | 'NotConsumed' | 'Cancelled'
+type ApiReservationStatus = 'Confirmed' | 'AwaitingPayment' | 'Consumed' | 'NotConsumed' | 'Cancelled' | 'PaymentExpired' | 'PaymentFailed'
 
 type ReservationResponse = {
   id: string
@@ -14,17 +14,35 @@ type ReservationResponse = {
   totalPrice: number
   status: ApiReservationStatus
   paymentId: string | null
+  canEdit?: boolean
+  canCancel?: boolean
+  paymentStatus?: ReservationPaymentStatus
+  paymentMethod?: PaymentMethod | null
+  consumptionStatus?: ReservationConsumptionStatus
 }
 
 const statusLabels: Record<ApiReservationStatus, ReservationStatus> = {
-  Confirmed: 'Em aberto',
-  AwaitingPayment: 'Aguardando pagamento',
-  Consumed: 'Consumida',
-  NotConsumed: 'Falta',
+  Confirmed: 'Confirmada',
+  AwaitingPayment: 'Aguardando PIX',
+  Consumed: 'Confirmada',
+  NotConsumed: 'Confirmada',
   Cancelled: 'Cancelada',
+  PaymentExpired: 'Cancelada',
+  PaymentFailed: 'Cancelada',
+}
+
+const consumptionStatuses: Record<ApiReservationStatus, ReservationConsumptionStatus> = {
+  Confirmed: 'AwaitingConsumption',
+  AwaitingPayment: 'NotApplicable',
+  Consumed: 'Consumed',
+  NotConsumed: 'NotConsumed',
+  Cancelled: 'NotApplicable',
+  PaymentExpired: 'NotApplicable',
+  PaymentFailed: 'NotApplicable',
 }
 
 function toReservation(response: ReservationResponse): Reservation {
+  const canChangeConfirmed = response.status === 'Confirmed' && Date.now() <= Date.parse(response.reservationDeadline)
   return {
     id: response.id,
     date: response.date,
@@ -35,6 +53,11 @@ function toReservation(response: ReservationResponse): Reservation {
     price: response.totalPrice,
     deadline: response.reservationDeadline,
     paymentId: response.paymentId,
+    canEdit: response.canEdit ?? (canChangeConfirmed && !response.paymentId),
+    canCancel: response.canCancel ?? (canChangeConfirmed || response.status === 'AwaitingPayment'),
+    paymentStatus: response.paymentStatus ?? (response.status === 'Cancelled' ? 'Cancelled' : 'Pending'),
+    paymentMethod: response.paymentMethod ?? null,
+    consumptionStatus: response.consumptionStatus ?? consumptionStatuses[response.status],
   }
 }
 
@@ -56,7 +79,11 @@ export async function getReservations(includeCancelled = true) {
   const reservations = await authenticatedRequest<ReservationResponse[]>(
     `/reservations?includeCancelled=${includeCancelled}`,
   )
-  return reservations.map(toReservation)
+  return reservations.filter((reservation) => !['PaymentExpired', 'PaymentFailed'].includes(reservation.status)).map(toReservation)
+}
+
+export function getReservationPricing() {
+  return authenticatedRequest<ReservationPricing>('/reservations/pricing')
 }
 
 export async function createReservation(input: ReservationDraft) {
