@@ -94,7 +94,6 @@
 .payment-option strong { font-size: 15px; }
 .payment-option small { color: var(--muted-strong); font-size: 12px; line-height: 1.6; }
 .payment-option .payment-option-tag { grid-column: 2; justify-self: start; padding: 4px 9px; border-radius: 20px; background: var(--surface-soft); color: var(--muted-strong); font-size: 10px; font-weight: 700; }
-.payment-option.unavailable { opacity: .65; cursor: not-allowed; border-style: dashed; }
 .checkout-feedback { padding: 16px; display: grid; gap: 8px; border: 1px solid; border-radius: 14px; font-size: 13px; line-height: 1.6; }
 .checkout-feedback--success { color: #186332; background: #edf9f0; border-color: #a6d9b4; }
 .checkout-feedback--warning { color: #79500a; background: #fff7e2; border-color: #e5ce91; }

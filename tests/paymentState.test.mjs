@@ -41,3 +41,11 @@ test('local expiry hides the payment flow even while remote reconciliation conti
   assert.equal(paymentFeedback(pending, false).title, 'Pague com PIX')
   assert.equal(paymentFeedback(pending, true).tone, 'error')
 })
+
+test('temporary QR failure shows automatic retry and recovers when the code arrives', () => {
+  const pending = { ...payment, status: 'Pending', paidAt: null, payload: null, message: 'Temporary QR failure' }
+  assert.equal(paymentFeedback(pending, false).tone, 'warning')
+  assert.match(paymentFeedback(pending, false).message, /automaticamente/)
+  assert.equal(paymentFeedback({ ...pending, payload: 'pix-code', message: null }, false).title, 'Pague com PIX')
+  assert.equal(paymentFeedback(pending, true).tone, 'error')
+})

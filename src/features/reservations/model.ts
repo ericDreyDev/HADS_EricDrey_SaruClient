@@ -104,7 +104,7 @@ export function mealPriceFor(user: AuthUser) {
 }
 
 export const paymentStatusLabels: Record<ReservationPaymentStatus, string> = {
-  Pending: 'Pendente',
+  Pending: 'Pendente pagamento',
   Paid: 'Pago',
   RefundPending: 'Reembolso em andamento',
   Refunded: 'Reembolsado',

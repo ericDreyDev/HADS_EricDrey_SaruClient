@@ -117,7 +117,7 @@ export function PixPaymentDialog({ initialPayment, onClose, onChanged, onSuccess
         <button className="gradient-button" type="button" onClick={copy}>{copied ? 'Código copiado!' : 'Copiar código PIX'}</button>
         <p className="pix-hint">Mantenha esta janela aberta para receber a confirmação. Você também pode acompanhar o PIX em Minhas reservas.</p>
       </>}
-      {isPix && !paid && !terminal && !expired && !canPay && <div className="pix-preparing" role="status"><span className="loading-spinner" /><p>Aguardando o código de pagamento…</p></div>}
+      {isPix && !paid && !terminal && !expired && !canPay && <div className="pix-preparing" role="status"><span className="loading-spinner" /><p>Aguardando o código de pagamento…</p><p>Tempo restante para concluir <strong>{countdown}</strong></p></div>}
       {payment.refunds.map((refund) => <div className={`pix-refund ${refund.status === 'Done' ? 'pix-refund--done' : ''}`} key={refund.reservationId}><span>{formatCurrency(refund.amount)} — {refund.status === 'Done' ? 'Reembolsado' : refund.status === 'ReviewRequired' ? 'Reembolso em conferência pelo RU' : 'Reembolso em andamento'}</span>{refund.receiptUrl && <a href={refund.receiptUrl} target="_blank" rel="noreferrer">Ver comprovante</a>}</div>)}
       <FormError message={error} />
     </div>

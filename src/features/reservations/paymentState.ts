@@ -23,5 +23,7 @@ export function paymentFeedback(payment: PixPayment, expired: boolean) {
     return { tone: 'error', title: 'Não foi possível concluir o PIX', message: 'Nenhuma reserva foi confirmada. Tente fazer uma nova reserva. Se já pagou, o RU fará a conferência e a devolução do valor.' }
   if (payment.status === 'Cancelled')
     return { tone: 'error', title: 'Pagamento cancelado', message: 'Nenhuma refeição desta tentativa foi confirmada. Se um pagamento for identificado, o valor será devolvido.' }
+  if (!payment.payload && payment.message && payment.status === 'Pending')
+    return { tone: 'warning', title: 'Aguardando o QR Code', message: 'O serviço de pagamento está demorando para gerar o PIX. Tentaremos novamente automaticamente enquanto o prazo estiver aberto.' }
   return { tone: 'info', title: payment.payload ? 'Pague com PIX' : 'Preparando seu PIX', message: payment.payload ? 'Escaneie o QR Code ou use o código copia e cola no aplicativo do seu banco.' : 'Estamos gerando o código. Sua reserva será confirmada após o recebimento.' }
 }
